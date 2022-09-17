@@ -51,9 +51,6 @@ contract carRental {
         uint256 calculatedDeposit = calculateDeposit(_carId);
         require(cars[_carId].isAvailable, "Car not available");
         require(msg.value >= calculatedDeposit, "Insufficient deposit");
-        (bool depositSent, bytes memory data) = address(this).call{
-            value: msg.value
-        }("");
         cars[_carId].isAvailable = false;
         uint256 currentId = rents.length;
         Rent memory rentDetail = Rent(
@@ -67,6 +64,9 @@ contract carRental {
             false
         );
         rents.push(rentDetail);
+        (bool depositSent, bytes memory data) = address(this).call{
+            value: msg.value
+        }("");
     }
 
     /// @notice when the car is delivered, the car owner is paid, the function is only available to the hirer
@@ -89,7 +89,8 @@ contract carRental {
         require(msg.sender == cars[_carId].owner, "Invalid owner");
         require(_carId == rents[_rentId].carId, "Dont match car id");
         require(!rents[_rentId].isComplete, "Process completed");
-
+        cars[_carId].isAvailable = true;
+        rents[_rentId].isComplete = true;
         uint256 dueDate = rents[_rentId].rentalStartTime +
             ((rents[_rentId].dayToRent * 24) * 3600);
 
@@ -102,8 +103,6 @@ contract carRental {
                 value: rents[_rentId].deposit
             }("");
         }
-        cars[_carId].isAvailable = true;
-        rents[_rentId].isComplete = true;
     }
 
     /// ****** PUBLIC FUNCTIONS *****
